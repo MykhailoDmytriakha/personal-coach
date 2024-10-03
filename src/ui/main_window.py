@@ -142,7 +142,12 @@ class MainWindow:
             self.master.after(0, lambda: self.update_chat("user", text))
             self.diary_entry.save_entry(text)
             
-            ai_response = self.chatbot.get_response(text)
+            # TODO: need to implement this 
+            user_profile_summary = None
+            current_tasks = None
+
+            # TODO: should get parsed response in JSON with 'output', 'user_data' and 'tasks'
+            ai_response = self.chatbot.get_response(text, user_profile_summary, current_tasks)
             tasks = self.task_extractor.extract_tasks(text)
             
             self.master.after(0, lambda: self.update_chat("ai", ai_response))
