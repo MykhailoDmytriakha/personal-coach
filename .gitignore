@@ -1,0 +1,17 @@
+.env
+temp_recording.wav
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.egg-info
+dist/
+build/
+venv/
+.idea/
+.vscode/
+.venv/
+recordings/
+diary_entries/
+**/.DS_Store
