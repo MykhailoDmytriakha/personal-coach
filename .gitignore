@@ -15,3 +15,4 @@ venv/
 recordings/
 diary_entries/
 **/.DS_Store
+**/user_profile.db

@@ -4,9 +4,8 @@ import json
 from ..utils.config import get_config
 
 class DiaryEntry:
-    def __init__(self, diary_folder=None):
-        config = get_config()
-        self.diary_folder = diary_folder or config['diary_entries_folder']
+    def __init__(self, diary_folder):
+        self.diary_folder = diary_folder
 
     def save_entry(self, text):
         """

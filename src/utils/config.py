@@ -5,19 +5,23 @@ def load_config():
     load_dotenv()
 
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    user_data_dir = os.path.join(base_dir, 'user_data')
 
     config = {
         'openai_api_key': os.getenv('OPENAI_API_KEY'),
         'openai_gpt_model': os.getenv('OPENAI_GPT_MODEL', 'gpt-4o'),
         'openai_gpt_model_small': os.getenv('OPENAI_GPT_MODEL_SMALL', 'gpt-4o-mini'),
         'openai_whisper_model': os.getenv('OPENAI_WHISPER_MODEL', 'whisper-1'),
-        'recordings_folder': os.path.join(base_dir, 'recordings'),
-        'diary_entries_folder': os.path.join(base_dir, 'diary_entries'),
+        'user_data_folder': user_data_dir,
+        'recordings_folder': os.path.join(user_data_dir, 'recordings'),
+        'diary_entries_folder': os.path.join(user_data_dir, 'diary_entries'),
+        'user_profiles_folder': user_data_dir,
         'debug_mode': os.getenv('DEBUG_MODE', 'False').lower() == 'true',
         'default_language': os.getenv('DEFAULT_LANGUAGE', 'en')
     }
 
     # Ensure required folders exist
+    os.makedirs(config['user_data_folder'], exist_ok=True)
     os.makedirs(config['recordings_folder'], exist_ok=True)
     os.makedirs(config['diary_entries_folder'], exist_ok=True)
 

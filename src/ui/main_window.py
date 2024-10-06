@@ -5,6 +5,7 @@ from ..audio.transcriber import Transcriber
 from ..data.diary_entry import DiaryEntry
 from ..ai.chat import ChatBot
 from ..ai.task_extractor import TaskExtractor
+from ..data.user_profile import UserProfile
 from .settings_window import SettingsWindow
 import threading
 import logging
@@ -23,6 +24,7 @@ class MainWindow:
         self.diary_entry = DiaryEntry(config['diary_entries_folder'])
         self.chatbot = ChatBot()
         self.task_extractor = TaskExtractor()
+        self.user_profile = UserProfile(config['user_profiles_folder'])
         
         self.setup_ui()
     
@@ -92,12 +94,34 @@ class MainWindow:
         self.tasks_text = scrolledtext.ScrolledText(tasks_frame, wrap=tk.WORD, width=70, height=20)
         self.tasks_text.pack(expand=True, fill=tk.BOTH)
 
+        # User Profile Tab
+        user_profile_frame = ttk.Frame(self.notebook, padding="10")
+        self.notebook.add(user_profile_frame, text="User Profile")
+        self.user_profile_text = scrolledtext.ScrolledText(user_profile_frame, wrap=tk.WORD, width=70, height=20)
+        self.user_profile_text.pack(expand=True, fill=tk.BOTH)
+
         # Diary Entries Tab
         diary_frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(diary_frame, text="Diary Entries")
         self.diary_text = scrolledtext.ScrolledText(diary_frame, wrap=tk.WORD, width=70, height=20)
         self.diary_text.pack(expand=True, fill=tk.BOTH)
 
+        self.update_diary()
+        self.update_user_profile()
+
+    def update_user_profile(self, new_profile_data=None):
+        try:
+            if new_profile_data:
+                self.user_profile.update_profile(new_profile_data)
+            
+            profile_data = self.user_profile.get_profile()
+            self.user_profile_text.delete(1.0, tk.END)
+            for item in profile_data:
+                self.user_profile_text.insert(tk.END, f"• {item}\n")
+        except Exception as e:
+            logging.error(f"Error in update_user_profile: {e}", exc_info=True)
+            self.show_error(f"Error updating user profile: {e}")
+    
     def open_settings(self):
         try:
             SettingsWindow(self.master, self.config)
@@ -154,6 +178,7 @@ class MainWindow:
             self.master.after(0, lambda: self.update_chat("ai", ai_response['output']))
             self.master.after(0, lambda: self.update_tasks(ai_response['tasks']))
             self.master.after(0, lambda: self.update_diary())
+            self.master.after(0, lambda: self.update_user_profile(ai_response['user_profile']))
             self.master.after(0, lambda: self.status_label.config(text="Status: Idle"))
         except Exception as e:
             logging.error(f"Error in process_input: {e}", exc_info=True)
