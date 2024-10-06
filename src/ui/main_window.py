@@ -108,19 +108,6 @@ class MainWindow:
 
         self.update_diary()
         self.update_user_profile()
-
-    def update_user_profile(self, new_profile_data=None):
-        try:
-            if new_profile_data:
-                self.user_profile.update_profile(new_profile_data)
-            
-            profile_data = self.user_profile.get_profile()
-            self.user_profile_text.delete(1.0, tk.END)
-            for item in profile_data:
-                self.user_profile_text.insert(tk.END, f"• {item}\n")
-        except Exception as e:
-            logging.error(f"Error in update_user_profile: {e}", exc_info=True)
-            self.show_error(f"Error updating user profile: {e}")
     
     def open_settings(self):
         try:
@@ -205,6 +192,19 @@ class MainWindow:
         except Exception as e:
             logging.error(f"Error in update_diary: {e}", exc_info=True)
             self.show_error(f"Error updating diary: {e}")
+    
+    def update_user_profile(self, new_profile_data=None):
+        try:
+            if new_profile_data:
+                self.user_profile.update_profile(new_profile_data)
+            
+            profile_data = self.user_profile.get_profile()
+            self.user_profile_text.delete(1.0, tk.END)
+            for item in profile_data:
+                self.user_profile_text.insert(tk.END, f"• {item}\n")
+        except Exception as e:
+            logging.error(f"Error in update_user_profile: {e}", exc_info=True)
+            self.show_error(f"Error updating user profile: {e}")
 
     def show_error(self, message):
         logging.error(message)
