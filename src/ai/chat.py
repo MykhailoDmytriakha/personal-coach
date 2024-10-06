@@ -74,7 +74,18 @@ class ResponseParser:
             
             if start != -1 and end != -1:
                 content = response[start + len(start_tag):end].strip()
-                parsed[tag] = content
+                if tag == 'user_profile':
+                    try:
+                        parsed[tag] = json.loads(content)
+                    except json.JSONDecodeError:
+                        parsed[tag] = content
+                elif tag == 'tasks':
+                    try:
+                        parsed[tag] = json.loads(content)
+                    except json.JSONDecodeError:
+                        parsed[tag] = content
+                else:
+                    parsed[tag] = content
         
         return parsed
 
@@ -87,7 +98,9 @@ class ChatBot:
         self.response_parser = ResponseParser()
         self.conversation_history = []
 
-    def get_response(self, user_input, user_profile_summary, current_tasks):
+    def get_response(self, user_input):
+        user_profile_summary = None
+        current_tasks = None
         self.prompt_builder.add_user_profile(user_profile_summary)
         self.prompt_builder.add_current_tasks(current_tasks)
         system_prompt = self.prompt_builder.build()
@@ -114,8 +127,11 @@ class ChatBot:
             logging.info(f"parsed response: {parsed_response}")
             return parsed_response
         except Exception as e:
-            logging.error(f"Error in getting AI response: {e}")
-            return {"output": "I'm sorry, I encountered an error while processing your request."}
+            logging.error(f"Unexpected error in getting AI response: {e}")
+            return {
+                "output": "I apologize, but I've encountered an unexpected issue. Let's try that again.",
+                "error": str(e)
+            }
 
     def clear_conversation(self):
         """

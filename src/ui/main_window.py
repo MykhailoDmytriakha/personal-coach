@@ -1,4 +1,5 @@
 import tkinter as tk
+import json
 from tkinter import ttk, messagebox, scrolledtext
 from ..audio.recorder import AudioRecorder
 from ..audio.transcriber import Transcriber
@@ -98,20 +99,6 @@ class MainWindow:
         self.diary_text = scrolledtext.ScrolledText(diary_frame, wrap=tk.WORD, width=70, height=10)
         self.diary_text.pack(expand=True, fill=tk.BOTH)
 
-        # Bottom frame for additional controls
-        bottom_frame = ttk.Frame(main_container)
-        bottom_frame.grid(column=0, row=2, sticky=(tk.W, tk.E))
-        bottom_frame.columnconfigure(1, weight=1)
-
-        self.clear_button = ttk.Button(bottom_frame, text="Clear All", command=self.clear_all)
-        self.clear_button.grid(column=0, row=0, padx=5, pady=5)
-
-        self.save_button = ttk.Button(bottom_frame, text="Save Session", command=self.save_session)
-        self.save_button.grid(column=1, row=0, padx=5, pady=5)
-
-        self.load_button = ttk.Button(bottom_frame, text="Load Session", command=self.load_session)
-        self.load_button.grid(column=2, row=0, padx=5, pady=5)
-
     def open_settings(self):
         SettingsWindow(self.master, self.config)
 
@@ -141,17 +128,11 @@ class MainWindow:
             
             self.master.after(0, lambda: self.update_chat("user", text))
             self.diary_entry.save_entry(text)
-            
-            # TODO: need to implement this 
-            user_profile_summary = None
-            current_tasks = None
 
-            # TODO: should get parsed response in JSON with 'output', 'user_data' and 'tasks'
-            ai_response = self.chatbot.get_response(text, user_profile_summary, current_tasks)
-            tasks = self.task_extractor.extract_tasks(text)
+            ai_response = self.chatbot.get_response(text)
             
-            self.master.after(0, lambda: self.update_chat("ai", ai_response))
-            self.master.after(0, lambda: self.update_tasks(tasks))
+            self.master.after(0, lambda: self.update_chat("ai", ai_response['output']))
+            self.master.after(0, lambda: self.update_tasks(ai_response['tasks']))
             self.master.after(0, lambda: self.update_diary())
             self.master.after(0, lambda: self.status_label.config(text="Status: Idle"))
         except Exception as e:
@@ -173,26 +154,3 @@ class MainWindow:
         self.diary_text.delete(1.0, tk.END)
         for entry in entries:
             self.diary_text.insert(tk.END, f"{entry['timestamp']}\n{entry['content']}\n\n")
-
-    def show_error(self, message):
-        messagebox.showerror("Error", message)
-
-    def show_info(self, message):
-        messagebox.showinfo("Information", message)
-
-    def clear_all(self):
-        self.chat_text.delete(1.0, tk.END)
-        self.tasks_text.delete(1.0, tk.END)
-        self.diary_text.delete(1.0, tk.END)
-
-    def save_session(self):
-        # Implement saving the current session
-        self.show_info("Session saved successfully!")
-
-    def load_session(self):
-        # Implement loading a previous session
-        self.show_info("Session loaded successfully!")
-
-    def exit_application(self):
-        if messagebox.askyesno("Exit", "Are you sure you want to exit?"):
-            self.master.quit()
