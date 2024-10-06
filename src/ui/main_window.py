@@ -9,6 +9,7 @@ from ..data.user_profile import UserProfile
 from .settings_window import SettingsWindow
 import threading
 import logging
+import os
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -18,6 +19,11 @@ class MainWindow:
         self.master.title("Personal Coach")
         self.master.geometry("800x600")
         self.config = config
+
+        icon_path = os.path.join(os.path.dirname(__file__), '..', '..', 'assets', 'app_icon.png')
+        if os.path.exists(icon_path):
+            icon = tk.PhotoImage(file=icon_path)
+            self.master.iconphoto(True, icon)
         
         self.audio_recorder = AudioRecorder(config['recordings_folder'])
         self.transcriber = Transcriber()
