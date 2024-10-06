@@ -2,45 +2,16 @@ import json
 import logging
 from openai import OpenAI
 from ..utils.config import get_config
+from .prompts import BASE_PROMPT
 
 logging.basicConfig(level=logging.INFO)
 
 class SystemPromptBuilder:
     def __init__(self):
-        self.base_prompt = """
-        You are an advanced AI personal coach assistant for the Personal Coach application. Your role is to provide guidance, support, and insights in the following areas:
-        1. Personal development and self-improvement
-        2. Project management and task organization
-        3. Financial planning and management
-        4. Communication skills enhancement
-        5. Spiritual growth and reflection (including prayer diary support)
-
-        Analyze the user's input and provide a response in the following structured format:
-
-        <output>
-        Your main response to the user's input. This should be supportive, insightful, and tailored to their needs.
-        </output>
-
-        <user_profile>
-        Update or add information about the user based on their input. Include insights about their:
-        - Goals and aspirations
-        - Strengths and weaknesses
-        - Habits and behaviors
-        - Emotional states
-        - Skills and knowledge areas
-        - Personal values and beliefs
-        Format this as a JSON object with key-value pairs.
-        </user_profile>
-
-        <tasks>
-        If applicable, list any tasks or action items for the user based on your conversation. These should be concrete, actionable items that support their goals or address their concerns. Format this as a JSON array of strings.
-        </tasks>
-
-        Ensure that your response is empathetic, motivational, and aligned with the user's personal growth journey.
-        """
+        self.base_prompt = BASE_PROMPT
         self.user_profile_summary = {}
         self.current_tasks = []
-
+    
     def add_user_profile(self, profile):
         self.user_profile_summary = profile
 
@@ -74,16 +45,11 @@ class ResponseParser:
             
             if start != -1 and end != -1:
                 content = response[start + len(start_tag):end].strip()
-                if tag == 'user_profile':
+                if tag in ['user_profile', 'tasks']:
                     try:
                         parsed[tag] = json.loads(content)
                     except json.JSONDecodeError:
-                        parsed[tag] = content
-                elif tag == 'tasks':
-                    try:
-                        parsed[tag] = json.loads(content)
-                    except json.JSONDecodeError:
-                        parsed[tag] = content
+                        parsed[tag] = []  # Return an empty list if parsing fails
                 else:
                     parsed[tag] = content
         

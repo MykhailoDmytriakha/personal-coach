@@ -6,15 +6,12 @@ class TestResponseParser(unittest.TestCase):
     def test_parse_with_all_tags(self):
         response = """
         <output>Your main response to the user's input.</output>
-        <user_profile>{"goals": "improve fitness", "strengths": "discipline"}</user_profile>
+        <user_profile>["Goal: improve fitness", "Strength: discipline", "Habit: morning jog"]</user_profile>
         <tasks>["Go for a run", "Join a gym"]</tasks>
         """
         expected_output = {
             "output": "Your main response to the user's input.",
-            "user_profile": {
-                "goals": "improve fitness",
-                "strengths": "discipline"
-            },
+            "user_profile": ["Goal: improve fitness", "Strength: discipline", "Habit: morning jog"],
             "tasks": ["Go for a run", "Join a gym"]
         }
         parsed_response = ResponseParser.parse(response)
@@ -28,6 +25,20 @@ class TestResponseParser(unittest.TestCase):
         expected_output = {
             "output": "Your main response to the user's input.",
             "tasks": ["Go for a run", "Join a gym"]
+        }
+        parsed_response = ResponseParser.parse(response)
+        self.assertEqual(parsed_response, expected_output)
+
+    def test_parse_with_invalid_json(self):
+        response = """
+        <output>Your main response to the user's input.</output>
+        <user_profile>Invalid JSON data</user_profile>
+        <tasks>Also invalid JSON data</tasks>
+        """
+        expected_output = {
+            "output": "Your main response to the user's input.",
+            "user_profile": [],
+            "tasks": []
         }
         parsed_response = ResponseParser.parse(response)
         self.assertEqual(parsed_response, expected_output)
