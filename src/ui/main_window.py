@@ -1,36 +1,15 @@
 import tkinter as tk
-import json
 from tkinter import ttk, messagebox, scrolledtext
 from ..audio.recorder import AudioRecorder
 from ..audio.transcriber import Transcriber
 from ..data.diary_entry import DiaryEntry
 from ..ai.chat import ChatBot
 from ..ai.task_extractor import TaskExtractor
+from .settings_window import SettingsWindow
 import threading
+import logging
 
-class SettingsWindow(tk.Toplevel):
-    def __init__(self, parent, config):
-        super().__init__(parent)
-        self.title("Settings")
-        self.config = config
-        self.language_var = tk.StringVar(value=self.config.get('default_language', 'en'))
-        self.create_widgets()
-
-    def create_widgets(self):
-        frame = ttk.Frame(self, padding="10")
-        frame.grid(column=0, row=0, sticky=(tk.N, tk.W, tk.E, tk.S))
-
-        ttk.Label(frame, text="Language:").grid(column=0, row=0, padx=5, pady=5)
-        language_combo = ttk.Combobox(frame, textvariable=self.language_var, values=('en', 'ru', 'fr', 'de', 'es'), width=5)
-        language_combo.grid(column=1, row=0, padx=5, pady=5)
-        language_combo.bind('<<ComboboxSelected>>', self.on_language_change)
-
-        ttk.Button(frame, text="Close", command=self.destroy).grid(column=0, row=1, columnspan=2, pady=10)
-
-    def on_language_change(self, event):
-        selected_language = self.language_var.get()
-        self.config['default_language'] = selected_language
-        print(f"Language changed to: {selected_language}")
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class MainWindow:
     def __init__(self, master, config):
@@ -62,16 +41,13 @@ class MainWindow:
         top_frame.grid(column=0, row=0, sticky=(tk.W, tk.E))
         top_frame.columnconfigure(1, weight=1)
 
-        # Recording controls
-        self.record_button = ttk.Button(top_frame, text="Start Recording", command=self.toggle_recording)
-        self.record_button.grid(column=0, row=0, padx=5, pady=5)
-
+        # Status label
         self.status_label = ttk.Label(top_frame, text="Status: Idle")
-        self.status_label.grid(column=1, row=0, padx=5, pady=5)
+        self.status_label.grid(column=0, row=0, padx=5, pady=5)
 
         # Settings button
         self.settings_button = ttk.Button(top_frame, text="⚙", width=3, command=self.open_settings)
-        self.settings_button.grid(column=2, row=0, padx=5, pady=5)
+        self.settings_button.grid(column=1, row=0, padx=5, pady=5, sticky=tk.E)
 
         # Notebook for different sections
         self.notebook = ttk.Notebook(main_container)
@@ -82,25 +58,52 @@ class MainWindow:
         # Chat Tab
         chat_frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(chat_frame, text="Chat")
+        chat_frame.columnconfigure(0, weight=1)
+        chat_frame.rowconfigure(0, weight=1)
+
+        # Chat text area
         self.chat_text = scrolledtext.ScrolledText(chat_frame, wrap=tk.WORD, width=70, height=20)
-        self.chat_text.pack(expand=True, fill=tk.BOTH)
+        self.chat_text.grid(column=0, row=0, sticky=(tk.N, tk.W, tk.E, tk.S))
+        self.chat_text.config(state=tk.DISABLED)
         self.chat_text.tag_configure("user", justify="right", foreground="blue")
         self.chat_text.tag_configure("ai", justify="left", foreground="green")
+
+        # Input frame
+        input_frame = ttk.Frame(chat_frame)
+        input_frame.grid(column=0, row=1, sticky=(tk.W, tk.E), pady=10)
+        input_frame.columnconfigure(0, weight=1)
+
+        # Text input
+        self.text_input = ttk.Entry(input_frame)
+        self.text_input.grid(column=0, row=0, sticky=(tk.W, tk.E))
+        self.text_input.bind("<Return>", self.on_enter_press)  # Привязка события нажатия Enter
+
+        # Send button
+        self.send_button = ttk.Button(input_frame, text="Send", command=self.send_message)
+        self.send_button.grid(column=1, row=0, padx=(5, 0))
+
+        # Record button
+        self.record_button = ttk.Button(input_frame, text="🎤", width=3, command=self.toggle_recording)
+        self.record_button.grid(column=2, row=0, padx=(5, 0))
 
         # Tasks Tab
         tasks_frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(tasks_frame, text="Tasks")
-        self.tasks_text = scrolledtext.ScrolledText(tasks_frame, wrap=tk.WORD, width=70, height=10)
+        self.tasks_text = scrolledtext.ScrolledText(tasks_frame, wrap=tk.WORD, width=70, height=20)
         self.tasks_text.pack(expand=True, fill=tk.BOTH)
 
         # Diary Entries Tab
         diary_frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(diary_frame, text="Diary Entries")
-        self.diary_text = scrolledtext.ScrolledText(diary_frame, wrap=tk.WORD, width=70, height=10)
+        self.diary_text = scrolledtext.ScrolledText(diary_frame, wrap=tk.WORD, width=70, height=20)
         self.diary_text.pack(expand=True, fill=tk.BOTH)
 
     def open_settings(self):
-        SettingsWindow(self.master, self.config)
+        try:
+            SettingsWindow(self.master, self.config)
+        except Exception as e:
+            logging.error(f"Error opening settings window: {e}", exc_info=True)
+            self.show_error(f"Error opening settings: {e}")
 
     def toggle_recording(self):
         if not self.audio_recorder.is_recording:
@@ -110,12 +113,12 @@ class MainWindow:
 
     def start_recording(self):
         self.audio_recorder.start_recording()
-        self.record_button.config(text="Stop Recording")
+        self.record_button.config(text="⏹")
         self.status_label.config(text="Status: Recording...")
 
     def stop_recording(self):
         audio_file = self.audio_recorder.stop_recording()
-        self.record_button.config(text="Start Recording")
+        self.record_button.config(text="🎤")
         self.status_label.config(text="Status: Processing...")
         threading.Thread(target=self.process_recording, args=(audio_file,), daemon=True).start()
 
@@ -127,8 +130,25 @@ class MainWindow:
                 return
             
             self.master.after(0, lambda: self.update_chat("user", text))
-            self.diary_entry.save_entry(text)
+            self.process_input(text)
+        except Exception as e:
+            logging.error(f"Error in process_recording: {e}", exc_info=True)
+            self.master.after(0, lambda: self.show_error(f"Error in processing recording: {e}"))
+            self.master.after(0, lambda: self.status_label.config(text="Status: Idle"))
 
+    def on_enter_press(self, event):
+        self.send_message()
+
+    def send_message(self):
+        text = self.text_input.get()
+        if text:
+            self.text_input.delete(0, tk.END)
+            self.update_chat("user", text)
+            self.process_input(text)
+
+    def process_input(self, text):
+        try:
+            self.diary_entry.save_entry(text)
             ai_response = self.chatbot.get_response(text)
             
             self.master.after(0, lambda: self.update_chat("ai", ai_response['output']))
@@ -136,13 +156,15 @@ class MainWindow:
             self.master.after(0, lambda: self.update_diary())
             self.master.after(0, lambda: self.status_label.config(text="Status: Idle"))
         except Exception as e:
-            print(f"Error: {e}")
-            self.master.after(0, lambda: self.show_error(f"Error: {e}"))
+            logging.error(f"Error in process_input: {e}", exc_info=True)
+            self.master.after(0, lambda: self.show_error(f"Error in processing input: {e}"))
             self.master.after(0, lambda: self.status_label.config(text="Status: Idle"))
 
     def update_chat(self, sender, text):
+        self.chat_text.config(state=tk.NORMAL)
         self.chat_text.insert(tk.END, f"{sender.capitalize()}: {text}\n\n", sender)
         self.chat_text.see(tk.END)
+        self.chat_text.config(state=tk.DISABLED)
 
     def update_tasks(self, tasks):
         self.tasks_text.delete(1.0, tk.END)
@@ -150,7 +172,15 @@ class MainWindow:
             self.tasks_text.insert(tk.END, f"- {task}\n")
 
     def update_diary(self):
-        entries = self.diary_entry.get_entries()
-        self.diary_text.delete(1.0, tk.END)
-        for entry in entries:
-            self.diary_text.insert(tk.END, f"{entry['timestamp']}\n{entry['content']}\n\n")
+        try:
+            entries = self.diary_entry.get_entries()
+            self.diary_text.delete(1.0, tk.END)
+            for entry in entries:
+                self.diary_text.insert(tk.END, f"{entry['timestamp']}\n{entry['content']}\n\n")
+        except Exception as e:
+            logging.error(f"Error in update_diary: {e}", exc_info=True)
+            self.show_error(f"Error updating diary: {e}")
+
+    def show_error(self, message):
+        logging.error(message)
+        messagebox.showerror("Error", message)
