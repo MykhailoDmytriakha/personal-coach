@@ -17,7 +17,8 @@ def load_config():
         'diary_entries_folder': os.path.join(user_data_dir, 'diary_entries'),
         'user_profiles_folder': user_data_dir,
         'debug_mode': os.getenv('DEBUG_MODE', 'False').lower() == 'true',
-        'default_language': os.getenv('DEFAULT_LANGUAGE', 'en')
+        'default_language': os.getenv('DEFAULT_LANGUAGE', 'en'),
+        'DB_NAME': 'user_data.db'
     }
 
     # Ensure required folders exist

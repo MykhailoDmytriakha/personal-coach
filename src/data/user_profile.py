@@ -1,13 +1,11 @@
 import os
-import json
 import sqlite3
 from ..utils.config import get_config
 
 class UserProfile:
-    def __init__(self, diary_entries_folder):
-        self.profile_folder = diary_entries_folder
-        os.makedirs(self.profile_folder, exist_ok=True)
-        self.db_path = os.path.join(self.profile_folder, 'user_profile.db')
+    def __init__(self):
+        config = get_config()
+        self.db_path = config['user_data_folder'] + '/user_data.db'
         self._create_table()
 
     def _create_table(self):
@@ -23,7 +21,6 @@ class UserProfile:
     def update_profile(self, new_items):
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            # Insert new items
             cursor.executemany('INSERT INTO user_profile (item) VALUES (?)', 
                                [(item,) for item in new_items])
 

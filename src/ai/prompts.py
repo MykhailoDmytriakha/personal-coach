@@ -22,6 +22,7 @@ Update or add information about the user based on their input. Include insights 
 - Emotional states
 - Skills and knowledge areas
 - Personal values and beliefs
+- etc.
 Format this as a JSON array of strings, where each string represents a key insight or piece of information about the user.
 </user_profile>
 

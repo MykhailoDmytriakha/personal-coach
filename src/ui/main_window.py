@@ -4,8 +4,8 @@ from ..audio.recorder import AudioRecorder
 from ..audio.transcriber import Transcriber
 from ..data.diary_entry import DiaryEntry
 from ..ai.chat import ChatBot
-from ..ai.task_extractor import TaskExtractor
 from ..data.user_profile import UserProfile
+from ..data.task_manager import TaskManager
 from .settings_window import SettingsWindow
 import threading
 import logging
@@ -29,8 +29,8 @@ class MainWindow:
         self.transcriber = Transcriber()
         self.diary_entry = DiaryEntry(config['diary_entries_folder'])
         self.chatbot = ChatBot()
-        self.task_extractor = TaskExtractor()
-        self.user_profile = UserProfile(config['user_profiles_folder'])
+        self.user_profile = UserProfile()
+        self.task_manager = TaskManager()
         
         self.setup_ui()
     
@@ -97,8 +97,19 @@ class MainWindow:
         # Tasks Tab
         tasks_frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(tasks_frame, text="Tasks")
-        self.tasks_text = scrolledtext.ScrolledText(tasks_frame, wrap=tk.WORD, width=70, height=20)
-        self.tasks_text.pack(expand=True, fill=tk.BOTH)
+        tasks_frame.columnconfigure(0, weight=1)
+        tasks_frame.rowconfigure(0, weight=1)
+
+        self.tasks_text = scrolledtext.ScrolledText(tasks_frame, wrap=tk.WORD, width=70, height=18)
+        self.tasks_text.grid(row=0, column=0, sticky=(tk.N, tk.W, tk.E, tk.S))
+
+        task_controls = ttk.Frame(tasks_frame)
+        task_controls.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(5, 0))
+
+        self.new_task_entry = ttk.Entry(task_controls)
+        self.new_task_entry.pack(side=tk.LEFT, expand=True, fill=tk.X)
+
+        ttk.Button(task_controls, text="Add Task", command=self.add_task).pack(side=tk.LEFT)
 
         # User Profile Tab
         user_profile_frame = ttk.Frame(self.notebook, padding="10")
@@ -114,6 +125,7 @@ class MainWindow:
 
         self.update_diary()
         self.update_user_profile()
+        self.update_tasks()
     
     def open_settings(self):
         try:
@@ -184,11 +196,6 @@ class MainWindow:
         self.chat_text.see(tk.END)
         self.chat_text.config(state=tk.DISABLED)
 
-    def update_tasks(self, tasks):
-        self.tasks_text.delete(1.0, tk.END)
-        for task in tasks:
-            self.tasks_text.insert(tk.END, f"- {task}\n")
-
     def update_diary(self):
         try:
             entries = self.diary_entry.get_entries()
@@ -211,6 +218,23 @@ class MainWindow:
         except Exception as e:
             logging.error(f"Error in update_user_profile: {e}", exc_info=True)
             self.show_error(f"Error updating user profile: {e}")
+    
+    def update_tasks(self, new_tasks=None):
+        if new_tasks:
+            self.task_manager.add_tasks(new_tasks)
+        
+        tasks = self.task_manager.get_tasks()
+        self.tasks_text.delete(1.0, tk.END)
+        for task in tasks:
+            status = "[X]" if task['completed'] else "[ ]"
+            self.tasks_text.insert(tk.END, f"{status} {task['id']}: {task['task']}\n")
+
+    def add_task(self):
+        task = self.new_task_entry.get()
+        if task:
+            self.task_manager.add_tasks([task])
+            self.new_task_entry.delete(0, tk.END)
+            self.update_tasks()
 
     def show_error(self, message):
         logging.error(message)
