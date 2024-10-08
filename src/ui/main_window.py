@@ -230,7 +230,7 @@ class MainWindow:
             self.user_profile_text.config(state=tk.NORMAL)
             self.user_profile_text.delete(1.0, tk.END)
             for item in profile_data:
-                self.user_profile_text.insert(tk.END, f"• {item}\n")
+                self.user_profile_text.insert(tk.END, f"{item['timestamp']})\n• {item['item']}\n\n")
             self.user_profile_text.config(state=tk.NORMAL)
         except Exception as e:
             logging.error(f"Error in update_user_profile: {e}", exc_info=True)
