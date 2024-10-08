@@ -72,7 +72,7 @@ class MainWindow:
         # Chat text area
         self.chat_text = scrolledtext.ScrolledText(chat_frame, wrap=tk.WORD, width=70, height=20)
         self.chat_text.grid(column=0, row=0, sticky=(tk.N, tk.W, tk.E, tk.S))
-        self.chat_text.config(state=tk.DISABLED)
+        self.chat_text.config(state=tk.NORMAL)
         self.chat_text.tag_configure("user", justify="left", foreground="blue")
         self.chat_text.tag_configure("ai", justify="left", foreground="green")
 
@@ -84,7 +84,7 @@ class MainWindow:
         # Text input
         self.text_input = ttk.Entry(input_frame)
         self.text_input.grid(column=0, row=0, sticky=(tk.W, tk.E))
-        self.text_input.bind("<Return>", self.on_enter_press)  # Привязка события нажатия Enter
+        self.text_input.bind("<Return>", self.on_enter_press)
 
         # Send button
         self.send_button = ttk.Button(input_frame, text="Send", command=self.send_message)
@@ -97,31 +97,23 @@ class MainWindow:
         # Tasks Tab
         tasks_frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(tasks_frame, text="Tasks")
-        tasks_frame.columnconfigure(0, weight=1)
-        tasks_frame.rowconfigure(0, weight=1)
-
-        self.tasks_text = scrolledtext.ScrolledText(tasks_frame, wrap=tk.WORD, width=70, height=18)
-        self.tasks_text.grid(row=0, column=0, sticky=(tk.N, tk.W, tk.E, tk.S))
-
-        task_controls = ttk.Frame(tasks_frame)
-        task_controls.grid(row=1, column=0, sticky=(tk.W, tk.E), pady=(5, 0))
-
-        self.new_task_entry = ttk.Entry(task_controls)
-        self.new_task_entry.pack(side=tk.LEFT, expand=True, fill=tk.X)
-
-        ttk.Button(task_controls, text="Add Task", command=self.add_task).pack(side=tk.LEFT)
+        self.tasks_text = scrolledtext.ScrolledText(tasks_frame, wrap=tk.WORD, width=70, height=20)
+        self.tasks_text.pack(expand=True, fill=tk.BOTH)
+        self.tasks_text.config(state=tk.NORMAL)
 
         # User Profile Tab
         user_profile_frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(user_profile_frame, text="User Profile")
         self.user_profile_text = scrolledtext.ScrolledText(user_profile_frame, wrap=tk.WORD, width=70, height=20)
         self.user_profile_text.pack(expand=True, fill=tk.BOTH)
+        self.user_profile_text.config(state=tk.NORMAL)
 
         # Diary Entries Tab
         diary_frame = ttk.Frame(self.notebook, padding="10")
         self.notebook.add(diary_frame, text="Diary Entries")
         self.diary_text = scrolledtext.ScrolledText(diary_frame, wrap=tk.WORD, width=70, height=20)
         self.diary_text.pack(expand=True, fill=tk.BOTH)
+        self.diary_text.config(state=tk.NORMAL)
 
         self.update_diary()
         self.update_user_profile()
@@ -188,6 +180,7 @@ class MainWindow:
                 logging.error(f"Unexpected AI response format: {ai_response}")
                 self.master.after(0, lambda: self.show_error("Unexpected response from AI. Please try again."))
             
+            self.master.after(0, lambda: self.update_diary())
             self.master.after(0, lambda: self.status_label.config(text="Status: Idle"))
         except Exception as e:
             logging.error(f"Error in process_input: {e}", exc_info=True)
@@ -198,20 +191,31 @@ class MainWindow:
         self.chat_text.config(state=tk.NORMAL)
         self.chat_text.insert(tk.END, f"{sender.capitalize()}: {text}\n\n", sender)
         self.chat_text.see(tk.END)
-        self.chat_text.config(state=tk.DISABLED)
+        self.chat_text.config(state=tk.NORMAL)
+
+    def update_tasks(self, tasks):
+        self.tasks_text.config(state=tk.NORMAL)
+        self.tasks_text.delete(1.0, tk.END)
+        for task in tasks:
+            self.tasks_text.insert(tk.END, f"- {task}\n")
+        self.tasks_text.config(state=tk.NORMAL)
 
     def update_diary(self):
         logging.info("Updating diary display")
         try:
             if self.diary_entry.has_entries():
                 entries = self.diary_entry.get_entries()
+                self.diary_text.config(state=tk.NORMAL)
                 self.diary_text.delete(1.0, tk.END)
                 for entry in entries:
                     self.diary_text.insert(tk.END, f"{entry['timestamp']}\n{entry['content']}\n\n")
+                self.diary_text.config(state=tk.NORMAL)
                 logging.info(f"Displayed {len(entries)} diary entries")
             else:
+                self.diary_text.config(state=tk.NORMAL)
                 self.diary_text.delete(1.0, tk.END)
                 self.diary_text.insert(tk.END, "No entries found. Start writing to create your first entry!")
+                self.diary_text.config(state=tk.NORMAL)
                 logging.info("No diary entries to display")
         except Exception as e:
             logging.error(f"Error in update_diary: {e}", exc_info=True)
@@ -223,9 +227,11 @@ class MainWindow:
                 self.user_profile.update_profile(new_profile_data)
             
             profile_data = self.user_profile.get_profile()
+            self.user_profile_text.config(state=tk.NORMAL)
             self.user_profile_text.delete(1.0, tk.END)
             for item in profile_data:
                 self.user_profile_text.insert(tk.END, f"• {item}\n")
+            self.user_profile_text.config(state=tk.NORMAL)
         except Exception as e:
             logging.error(f"Error in update_user_profile: {e}", exc_info=True)
             self.show_error(f"Error updating user profile: {e}")
