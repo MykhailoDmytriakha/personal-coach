@@ -1,10 +1,11 @@
 import sqlite3
+import os
 from ..utils.config import get_config
 
 class TaskManager:
-    def __init__(self):
+    def __init__(self, user_data_folder):
         config = get_config()
-        self.db_path = config['user_data_folder'] + '/user_data.db'
+        self.db_path = os.path.join(user_data_folder, 'user_data.db')
         self._create_table()
 
     def _create_table(self):

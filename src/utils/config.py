@@ -14,8 +14,6 @@ def load_config():
         'openai_whisper_model': os.getenv('OPENAI_WHISPER_MODEL', 'whisper-1'),
         'user_data_folder': user_data_dir,
         'recordings_folder': os.path.join(user_data_dir, 'recordings'),
-        'diary_entries_folder': os.path.join(user_data_dir, 'diary_entries'),
-        'user_profiles_folder': user_data_dir,
         'debug_mode': os.getenv('DEBUG_MODE', 'False').lower() == 'true',
         'default_language': os.getenv('DEFAULT_LANGUAGE', 'en'),
         'DB_NAME': 'user_data.db'
@@ -24,7 +22,6 @@ def load_config():
     # Ensure required folders exist
     os.makedirs(config['user_data_folder'], exist_ok=True)
     os.makedirs(config['recordings_folder'], exist_ok=True)
-    os.makedirs(config['diary_entries_folder'], exist_ok=True)
 
     # Validate critical configuration
     if not config['openai_api_key']:

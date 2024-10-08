@@ -27,10 +27,10 @@ class MainWindow:
         
         self.audio_recorder = AudioRecorder(config['recordings_folder'])
         self.transcriber = Transcriber()
-        self.diary_entry = DiaryEntry(config['diary_entries_folder'])
+        self.diary_entry = DiaryEntry(config['user_data_folder'])
         self.chatbot = ChatBot()
-        self.user_profile = UserProfile()
-        self.task_manager = TaskManager()
+        self.user_profile = UserProfile(config['user_data_folder'])
+        self.task_manager = TaskManager(config['user_data_folder'])
         
         self.setup_ui()
     
@@ -73,7 +73,7 @@ class MainWindow:
         self.chat_text = scrolledtext.ScrolledText(chat_frame, wrap=tk.WORD, width=70, height=20)
         self.chat_text.grid(column=0, row=0, sticky=(tk.N, tk.W, tk.E, tk.S))
         self.chat_text.config(state=tk.DISABLED)
-        self.chat_text.tag_configure("user", justify="right", foreground="blue")
+        self.chat_text.tag_configure("user", justify="left", foreground="blue")
         self.chat_text.tag_configure("ai", justify="left", foreground="green")
 
         # Input frame
@@ -180,10 +180,14 @@ class MainWindow:
             self.diary_entry.save_entry(text)
             ai_response = self.chatbot.get_response(text)
             
-            self.master.after(0, lambda: self.update_chat("ai", ai_response['output']))
-            self.master.after(0, lambda: self.update_tasks(ai_response['tasks']))
-            self.master.after(0, lambda: self.update_diary())
-            self.master.after(0, lambda: self.update_user_profile(ai_response['user_profile']))
+            if isinstance(ai_response, dict):
+                self.master.after(0, lambda: self.update_chat("ai", ai_response.get('output', '')))
+                self.master.after(0, lambda: self.update_tasks(ai_response.get('tasks', [])))
+                self.master.after(0, lambda: self.update_user_profile(ai_response.get('user_profile', [])))
+            else:
+                logging.error(f"Unexpected AI response format: {ai_response}")
+                self.master.after(0, lambda: self.show_error("Unexpected response from AI. Please try again."))
+            
             self.master.after(0, lambda: self.status_label.config(text="Status: Idle"))
         except Exception as e:
             logging.error(f"Error in process_input: {e}", exc_info=True)
@@ -197,11 +201,18 @@ class MainWindow:
         self.chat_text.config(state=tk.DISABLED)
 
     def update_diary(self):
+        logging.info("Updating diary display")
         try:
-            entries = self.diary_entry.get_entries()
-            self.diary_text.delete(1.0, tk.END)
-            for entry in entries:
-                self.diary_text.insert(tk.END, f"{entry['timestamp']}\n{entry['content']}\n\n")
+            if self.diary_entry.has_entries():
+                entries = self.diary_entry.get_entries()
+                self.diary_text.delete(1.0, tk.END)
+                for entry in entries:
+                    self.diary_text.insert(tk.END, f"{entry['timestamp']}\n{entry['content']}\n\n")
+                logging.info(f"Displayed {len(entries)} diary entries")
+            else:
+                self.diary_text.delete(1.0, tk.END)
+                self.diary_text.insert(tk.END, "No entries found. Start writing to create your first entry!")
+                logging.info("No diary entries to display")
         except Exception as e:
             logging.error(f"Error in update_diary: {e}", exc_info=True)
             self.show_error(f"Error updating diary: {e}")

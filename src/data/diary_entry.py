@@ -1,71 +1,66 @@
-import os
+import sqlite3
 import datetime
-import json
+import os
+import logging
 from ..utils.config import get_config
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
 class DiaryEntry:
-    def __init__(self, diary_folder):
-        self.diary_folder = diary_folder
+    def __init__(self, user_data_folder):
+        self.db_path = os.path.join(user_data_folder, 'user_data.db')
+        self._create_table()
+        logging.info(f"DiaryEntry initialized with database path: {self.db_path}")
+
+    def _create_table(self):
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS diary_entries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp TEXT,
+                    content TEXT
+                )
+            ''')
+        logging.info("Diary entries table created or verified")
 
     def save_entry(self, text):
-        """
-        Save a new diary entry.
-        """
-        today = datetime.date.today()
-        current_time = datetime.datetime.now().strftime("%H:%M:%S")
-        entry = {
-            "timestamp": f"{today} {current_time}",
-            "content": text
-        }
-        
-        filename = os.path.join(self.diary_folder, f"diary_entry_{today}.json")
-        
-        entries = []
-        if os.path.exists(filename):
-            with open(filename, "r", encoding='utf-8') as file:
-                entries = json.load(file)
-        
-        entries.append(entry)
-        
-        with open(filename, "w", encoding='utf-8') as file:
-            json.dump(entries, file, ensure_ascii=False, indent=2)
+        timestamp = datetime.datetime.now().isoformat()
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('INSERT INTO diary_entries (timestamp, content) VALUES (?, ?)', (timestamp, text))
+        logging.info(f"New diary entry saved with timestamp: {timestamp}")
 
-    def get_entries(self, date=None):
-        """
-        Retrieve diary entries for a specific date or all entries if date is None.
-        """
-        if date is None:
-            date = datetime.date.today()
-        
-        filename = os.path.join(self.diary_folder, f"diary_entry_{date}.json")
-        
-        if os.path.exists(filename):
-            with open(filename, "r", encoding='utf-8') as file:
-                return json.load(file)
-        return []
+    def get_entries(self):
+        logging.info("Attempting to retrieve diary entries")
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            cursor.execute('SELECT id, timestamp, content FROM diary_entries ORDER BY timestamp DESC')
+            entries = cursor.fetchall()
+            logging.info(f"Retrieved {len(entries)} diary entries")
+            return [{'id': row['id'], 'timestamp': row['timestamp'], 'content': row['content']} for row in entries]
 
     def get_entry_dates(self):
-        """
-        Get a list of dates for which diary entries exist.
-        """
-        dates = []
-        for filename in os.listdir(self.diary_folder):
-            if filename.startswith("diary_entry_") and filename.endswith(".json"):
-                date_str = filename[12:-5]  # Extract date from filename
-                dates.append(datetime.datetime.strptime(date_str, "%Y-%m-%d").date())
-        return sorted(dates, reverse=True)
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT DISTINCT date(timestamp) FROM diary_entries ORDER BY date(timestamp) DESC')
+            dates = [row[0] for row in cursor.fetchall()]
+            logging.info(f"Retrieved {len(dates)} unique entry dates")
+            return dates
 
-    def delete_entry(self, date, index):
-        """
-        Delete a specific diary entry.
-        """
-        filename = os.path.join(self.diary_folder, f"diary_entry_{date}.json")
-        if os.path.exists(filename):
-            with open(filename, "r", encoding='utf-8') as file:
-                entries = json.load(file)
-            if 0 <= index < len(entries):
-                del entries[index]
-                with open(filename, "w", encoding='utf-8') as file:
-                    json.dump(entries, file, ensure_ascii=False, indent=2)
-                return True
-        return False
+    def delete_entry(self, entry_id):
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('DELETE FROM diary_entries WHERE id = ?', (entry_id,))
+            deleted = cursor.rowcount > 0
+            logging.info(f"Deleted entry with ID {entry_id}: {'Success' if deleted else 'Failed'}")
+            return deleted
+
+    def has_entries(self):
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT COUNT(*) FROM diary_entries')
+            count = cursor.fetchone()[0]
+            logging.info(f"Diary has {count} entries")
+            return count > 0
