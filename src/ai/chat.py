@@ -25,26 +25,31 @@ class ChatBot:
                 ],
                 functions=[{
                     "name": "provide_coaching_response",
-                    "description": "Provide a coaching response with main output, user profile insights, and tasks",
+                    "description": "Act as a comprehensive AI personal coach to empower the user's holistic growth and well-being. Provide insightful, empathetic, and actionable guidance across various life domains including personal development, professional growth, emotional well-being, physical health, spiritual growth, financial management, and interpersonal relationships. Analyze the user's input, current profile, and historical data to offer tailored advice, set meaningful goals, suggest practical tasks, and track progress. Your role is to inspire, motivate, and support the user in realizing their full potential and achieving a balanced, fulfilling life.",
                     "parameters": {
                         "type": "object",
                         "properties": {
                             "output": {
                                 "type": "string",
-                                "description": "Main response to the user's input"
+                                "description": "Main response to the user, including personalized advice, encouragement, and reflections based on their input and overall context."
                             },
                             "user_profile": {
                                 "type": "array",
                                 "items": {"type": "string"},
-                                "description": "Insights about the user's profile"
+                                "description": "Insights about the user's personality, behaviors, strengths, challenges, and growth areas, derived from the conversation and historical data."
                             },
                             "tasks": {
                                 "type": "array",
                                 "items": {"type": "string"},
-                                "description": "List of tasks or action items for the user"
+                                "description": "Actionable and meaningful tasks or goals for the user, designed to promote growth and progress in relevant areas of their life."
+                            },
+                            "user_info": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "Array of strings containing factual information about the user. This may include, but is not limited to, personal details, physical characteristics, lifestyle information, and any other relevant objective facts about the user gathered from the conversation."
                             }
                         },
-                        "required": ["output", "user_profile", "tasks"]
+                        "required": ["output", "user_profile", "tasks", "user_info"]
                     }
                 }],
                 function_call={"name": "provide_coaching_response"}
