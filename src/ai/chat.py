@@ -11,6 +11,11 @@ class ChatBot:
         self.client = OpenAI(api_key=config['openai_api_key'])
         self.model = config['openai_gpt_model']
         self.conversation_history = []
+        self.user_context = self.load_user_context()
+
+    def load_user_context(self):
+       return "Mikhail, a Russian-speaking software developer working on the 'Personal Coach' project. Provide guidance and support for personal development, project management, financial planning, communication skills, and spiritual growth. Remember that Mikhail is a devout Christian with a family (wife Natasha, children Lisa, Naomi, and Daniel) and is actively involved in his church community. He values productivity, technology, and balancing professional responsibilities with personal growth. Tailor your advice to include both technical aspects of his work and spiritual components of his life. Be prepared to discuss software development concepts, AI integration, and religious topics. Use a mix of Russian and English terms as appropriate, reflecting Mikhail's bilingual nature. Your goal is to help Mikhail improve in all areas of his life while respecting his faith and family commitments."
+
 
     def get_response(self, user_input):
         self.conversation_history.append({"role": "user", "content": user_input})
@@ -20,7 +25,7 @@ class ChatBot:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": "You are an AI personal coach assistant. Provide guidance and support for personal development, project management, financial planning, communication skills, and spiritual growth."},
+                    {"role": "system", "content": self.user_context},
                     *self.conversation_history
                 ],
                 functions=[{
@@ -36,20 +41,20 @@ class ChatBot:
                             "user_profile": {
                                 "type": "array",
                                 "items": {"type": "string"},
-                                "description": "Insights about the user's personality, behaviors, strengths, challenges, and growth areas, derived from the conversation and historical data."
+                                "description": "New insights about the user's personality, behaviors, strengths, challenges, and growth areas, derived from the current conversation."
                             },
                             "tasks": {
                                 "type": "array",
                                 "items": {"type": "string"},
                                 "description": "Actionable and meaningful tasks or goals for the user, designed to promote growth and progress in relevant areas of their life."
                             },
-                            "user_info": {
+                            "new_user_info": {
                                 "type": "array",
                                 "items": {"type": "string"},
-                                "description": "Array of strings containing factual information about the user. This may include, but is not limited to, personal details, physical characteristics, lifestyle information, and any other relevant objective facts about the user gathered from the conversation."
+                                "description": "Array of strings containing new factual information about the user gathered from the current conversation, excluding information already present in the context."
                             }
                         },
-                        "required": ["output", "user_profile", "tasks", "user_info"]
+                        "required": ["output", "user_profile", "tasks", "new_user_info"]
                     }
                 }],
                 function_call={"name": "provide_coaching_response"}

@@ -77,6 +77,10 @@ class MainWindow:
         self.chat_text.config(state=tk.NORMAL)
         self.chat_text.tag_configure("user", justify="left", foreground="blue")
         self.chat_text.tag_configure("ai", justify="left", foreground="green")
+        self.chat_text.grid(column=0, row=0, sticky=(tk.N, tk.W, tk.E, tk.S))
+        self.chat_text.bind("<Command-a>", self.select_all)
+        self.chat_text.bind("<Control-a>", self.select_all)
+
 
         # Input frame
         input_frame = ttk.Frame(chat_frame)
@@ -102,6 +106,9 @@ class MainWindow:
         self.tasks_text = scrolledtext.ScrolledText(tasks_frame, wrap=tk.WORD, width=70, height=20)
         self.tasks_text.pack(expand=True, fill=tk.BOTH)
         self.tasks_text.config(state=tk.NORMAL)
+        self.tasks_text.pack(expand=True, fill=tk.BOTH)
+        self.tasks_text.bind("<Command-a>", self.select_all)
+        self.tasks_text.bind("<Control-a>", self.select_all)
 
         # User Profile Tab
         user_profile_frame = ttk.Frame(self.notebook, padding="10")
@@ -109,6 +116,9 @@ class MainWindow:
         self.user_profile_text = scrolledtext.ScrolledText(user_profile_frame, wrap=tk.WORD, width=70, height=20)
         self.user_profile_text.pack(expand=True, fill=tk.BOTH)
         self.user_profile_text.config(state=tk.NORMAL)
+        self.user_profile_text.pack(expand=True, fill=tk.BOTH)
+        self.user_profile_text.bind("<Command-a>", self.select_all)
+        self.user_profile_text.bind("<Control-a>", self.select_all)
 
         # User Info Tab
         user_info_frame = ttk.Frame(self.notebook, padding="10")
@@ -116,6 +126,9 @@ class MainWindow:
         self.user_info_text = scrolledtext.ScrolledText(user_info_frame, wrap=tk.WORD, width=70, height=20)
         self.user_info_text.pack(expand=True, fill=tk.BOTH)
         self.user_info_text.config(state=tk.NORMAL)
+        self.user_info_text.bind("<Command-a>", self.select_all)
+        self.user_info_text.bind("<Control-a>", self.select_all)
+        
 
         # Diary Entries Tab
         diary_frame = ttk.Frame(self.notebook, padding="10")
@@ -123,11 +136,20 @@ class MainWindow:
         self.diary_text = scrolledtext.ScrolledText(diary_frame, wrap=tk.WORD, width=70, height=20)
         self.diary_text.pack(expand=True, fill=tk.BOTH)
         self.diary_text.config(state=tk.NORMAL)
+        self.diary_text.pack(expand=True, fill=tk.BOTH)
+        self.diary_text.bind("<Command-a>", self.select_all)
+        self.diary_text.bind("<Control-a>", self.select_all)
 
         self.update_diary()
         self.update_user_profile()
         self.update_tasks()
         self.update_user_info()
+    
+    def select_all(self, event):
+        event.widget.tag_add(tk.SEL, "1.0", tk.END)
+        event.widget.mark_set(tk.INSERT, "1.0")
+        event.widget.see(tk.INSERT)
+        return 'break'
     
     def open_settings(self):
         try:
@@ -186,7 +208,7 @@ class MainWindow:
                 self.master.after(0, lambda: self.update_chat("ai", ai_response.get('output', '')))
                 self.master.after(0, lambda: self.update_tasks(ai_response.get('tasks', [])))
                 self.master.after(0, lambda: self.update_user_profile(ai_response.get('user_profile', [])))
-                self.master.after(0, lambda: self.update_user_info(ai_response.get('user_info', [])))
+                self.master.after(0, lambda: self.update_user_info(ai_response.get('new_user_info', [])))
             else:
                 logging.error(f"Unexpected AI response format: {ai_response}")
                 self.master.after(0, lambda: self.show_error("Unexpected response from AI. Please try again."))
