@@ -1,31 +1,79 @@
 import json
 from openai import OpenAI
 from ..utils.config import get_config
+from .context_extractor import ContextExtractor
+from ..data.diary_entry import DiaryEntry
+from ..data.user_profile import UserProfile
 import logging
+import datetime
 
 logging.basicConfig(level=logging.INFO)
 
 class ChatBot:
-    def __init__(self):
+    def __init__(self, user_data_folder):
         config = get_config()
         self.client = OpenAI(api_key=config['openai_api_key'])
         self.model = config['openai_gpt_model']
         self.conversation_history = []
+        self.context_extractor = ContextExtractor()
+        self.diary_entry = DiaryEntry(user_data_folder)
+        self.user_profile = UserProfile(user_data_folder)
         self.user_context = self.load_user_context()
 
     def load_user_context(self):
-       return "Mikhail, a Russian-speaking software developer working on the 'Personal Coach' project. Provide guidance and support for personal development, project management, financial planning, communication skills, and spiritual growth. Remember that Mikhail is a devout Christian with a family (wife Natasha, children Lisa, Naomi, and Daniel) and is actively involved in his church community. He values productivity, technology, and balancing professional responsibilities with personal growth. Tailor your advice to include both technical aspects of his work and spiritual components of his life. Be prepared to discuss software development concepts, AI integration, and religious topics. Use a mix of Russian and English terms as appropriate, reflecting Mikhail's bilingual nature. Your goal is to help Mikhail improve in all areas of his life while respecting his faith and family commitments."
+        logging.info("Loading user context")
+        contexts = {}
+        for period in ['day', 'week', 'month', 'year']:
+            if self.user_profile.context_needs_update(period):
+                entries = self.diary_entry.get_entries_for_period(period)
+                if entries:
+                    context = self.context_extractor.extract_context(entries, period, contexts)
+                    if context:
+                        self.user_profile.store_context(context, period)
+                        contexts[period] = context
+                else:
+                    logging.info(f"No entries found for period: {period}")
+            else:
+                context = self.user_profile.get_latest_context(period)
+                if context:
+                    contexts[period] = context
+                    logging.info(f"Using cached context for period: {period}")
+                else:
+                    logging.info(f"No cached context found for period: {period}")
+        
+        return self.combine_contexts(contexts)
 
+    def combine_contexts(self, contexts):
+        combined_context = "User Context:\n"
+        for period, context in contexts.items():
+            combined_context += f"{period.capitalize()}: {context}\n\n"
+        return combined_context.strip()
 
     def get_response(self, user_input):
         self.conversation_history.append({"role": "user", "content": user_input})
         logging.info(f"User input: {user_input}")
         
+        # Get today's entries
+        today = datetime.datetime.now().date()
+        today_entries = self.diary_entry.get_entries_for_period('day')
+        
+        # Separate the latest entry from previous entries
+        latest_entry = today_entries[0] if today_entries else None
+        previous_entries = today_entries[1:] if len(today_entries) > 1 else []
+        
+        # Prepare context with focus on the latest entry
+        focused_context = f"Latest entry: {latest_entry['content'] if latest_entry else 'No entry for today yet.'}\n\n"
+        if previous_entries:
+            focused_context += f"Summary of previous entries today: {self.context_extractor.extract_context(previous_entries, 'day', {})}\n\n"
+        focused_context += self.user_context
+        logging.info(f"User context: {focused_context}")
+
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": self.user_context},
+                    {"role": "system", "content": focused_context},
+                    {"role": "user", "content": "Please focus primarily on responding to my latest entry, while considering the context of previous entries and user information."},
                     *self.conversation_history
                 ],
                 functions=[{
@@ -75,6 +123,7 @@ class ChatBot:
                 "output": "I apologize, but I've encountered an unexpected issue. Let's try that again.",
                 "user_profile": [],
                 "tasks": [],
+                "new_user_info": [],
                 "error": str(e)
             }
 
@@ -83,3 +132,6 @@ class ChatBot:
 
     def get_conversation_summary(self):
         return self.conversation_history
+
+    def refresh_user_context(self):
+        self.user_context = self.load_user_context()

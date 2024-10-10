@@ -29,7 +29,7 @@ class MainWindow:
         self.audio_recorder = AudioRecorder(config['recordings_folder'])
         self.transcriber = Transcriber()
         self.diary_entry = DiaryEntry(config['user_data_folder'])
-        self.chatbot = ChatBot()
+        self.chatbot = ChatBot(config['user_data_folder'])
         self.user_profile = UserProfile(config['user_data_folder'])
         self.task_manager = TaskManager(config['user_data_folder'])
         self.user_info = UserInfo(config['user_data_folder'])
